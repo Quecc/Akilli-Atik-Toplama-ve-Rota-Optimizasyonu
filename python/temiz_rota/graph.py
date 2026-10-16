@@ -18,7 +18,11 @@ def haversine(a: Coordinates, b: Coordinates) -> float:
     latitude = (b[0] - a[0]) * radians
     longitude = (b[1] - a[1]) * radians
     value = math.sin(latitude / 2) ** 2
-    value += math.cos(a[0] * radians) * math.cos(b[0] * radians) * math.sin(longitude / 2) ** 2
+    value += (
+        math.cos(a[0] * radians)
+        * math.cos(b[0] * radians)
+        * math.sin(longitude / 2) ** 2
+    )
     value = min(1.0, max(0.0, value))
     return 6_371_000 * 2 * math.atan2(math.sqrt(value), math.sqrt(1 - value))
 
@@ -44,7 +48,9 @@ def build_graph(data: dict) -> Graph:
     return graph
 
 
-def dijkstra(graph: Graph, start: int, targets: set[int]) -> tuple[dict[int, float], dict[int, int]]:
+def dijkstra(
+    graph: Graph, start: int, targets: set[int]
+) -> tuple[dict[int, float], dict[int, int]]:
     """Negatif olmayan yol uzunluklarıyla tek başlangıçlı en kısa yol.
 
     heapq en küçük mevcut uzaklığı seçer. Kuyruktaki eski kayıtlar
@@ -63,7 +69,9 @@ def dijkstra(graph: Graph, start: int, targets: set[int]) -> tuple[dict[int, flo
         remaining.discard(node)
         for neighbor, edge_length in graph[node]:
             if not math.isfinite(edge_length) or edge_length < 0:
-                raise RoutingError("Dijkstra için yol uzunlukları sonlu ve negatif olmayan sayılar olmalı.")
+                raise RoutingError(
+                    "Dijkstra için yol uzunlukları sonlu ve negatif olmayan sayılar olmalı."
+                )
             candidate = distance + edge_length
             if candidate < distances.get(neighbor, math.inf):
                 distances[neighbor] = candidate
@@ -105,5 +113,5 @@ class Network:
         """Ziyaret sırasını OSM yol düğümlerinden geçen çizgiye dönüştür."""
         result: list[int] = []
         for index, (start, end) in enumerate(zip(order, order[1:])):
-            result.extend(self.paths[start][end][0 if index == 0 else 1:])
+            result.extend(self.paths[start][end][0 if index == 0 else 1 :])
         return result

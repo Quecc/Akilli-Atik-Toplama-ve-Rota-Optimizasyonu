@@ -1,48 +1,474 @@
 <!doctype html>
 <html lang="tr">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Gültepe Mahallesi için 20 sanal kutuyla akıllı atık toplama ve yol ağı üzerinde rota simülasyonu.">
-  <meta name="theme-color" content="#12634b"><title>Temiz Rota · Gültepe</title>
-  <link rel="icon" href="assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css">
-  <script defer src="data/map-data.js"></script><script defer src="route-engine.js"></script><script defer src="app.js"></script>
-</head>
-<body>
-  <aside class="sidebar">
-    <a class="brand" href="#overview" aria-label="Temiz Rota ana sayfa"><img src="assets/mark.svg" alt="" width="42" height="42"><span>temiz<span class="brand-light">rota</span><small>AKILLI ATIK TOPLAMA</small></span></a>
-    <div class="workspace"><span class="workspace-icon">G</span><div><strong>Gültepe Mahallesi</strong><small>Altındağ · Ankara</small></div><span class="chevron">⌄</span></div>
-    <div class="nav-label">ÇALIŞMA ALANI</div>
-    <nav aria-label="Ana menü"><a href="#overview" class="nav-item active"><span>◫</span>Genel bakış</a><a href="#bins-section" class="nav-item"><span>▤</span>Kutular <b>20</b></a><button class="nav-item" id="method-button"><span>⌘</span>Devre ve yöntem</button></nav>
-    <div class="sidebar-bottom"><div class="small-orbit">↗</div><strong>Daha az yol.<br>Daha temiz bir mahalle.</strong><p>Doğru zamanda, doğru kutuya.</p><span class="simulation-tag"><i></i> Simülasyon projesi</span></div>
-  </aside>
-  <div class="page">
-    <header class="topbar"><span>Çalışma alanı <span class="slash">/</span> <strong>Genel bakış</strong></span><div class="topbar-right"><span class="connection" id="engine-status"><i></i> Yerel çalışma</span><button class="icon-button" id="help-button" aria-label="Proje hakkında">?</button><span class="avatar" aria-label="Erhan'ın projesi">E</span></div></header>
-    <main id="overview">
-      <div class="page-heading"><div><div class="eyebrow">GÜLTEPE · ANKARA</div><h1>Mahallenin nabzı, tek ekranda.</h1><p>Dolulukları izle, toplama adaylarını seç, rotayı güncelle.</p></div><div class="heading-actions"><button class="button secondary" id="export-button"><span>↓</span> Verileri indir</button><button class="button primary" id="simulation-button" aria-pressed="false"><span>▶</span> Canlı simülasyon</button></div></div>
-      <div class="notice"><span class="notice-dot"></span><p><strong>20 sanal kutu, gerçek mahalle yolları.</strong> Kutu konumları ve doluluklar örnektir; Tinkercad ölçümleri elle aktarılır.</p><span class="notice-label">DEMO</span></div>
-      <section class="stats-grid" aria-label="Toplama özeti" aria-live="polite">
-        <article class="stat-card"><div class="stat-top"><span>İzlenen kutu</span><span class="stat-icon neutral">▤</span></div><div class="stat-value">20<small>kutu</small></div><div class="stat-foot">Gültepe ve çevresinde</div></article>
-        <article class="stat-card"><div class="stat-top"><span>Toplama adayı</span><span class="stat-icon orange">↗</span></div><div class="stat-value"><span id="candidate-count">—</span><small>kutu</small></div><div class="stat-foot"><span class="orange-text" id="threshold-caption">%50 eşiğinin üzerinde</span></div></article>
-        <article class="stat-card"><div class="stat-top"><span>Atlanan durak</span><span class="stat-icon green">✓</span></div><div class="stat-value"><span id="skipped-count">—</span><small>kutu</small></div><div class="stat-foot">Bu turda toplama gerekmiyor</div></article>
-        <article class="stat-card accent-stat"><div class="stat-top"><span>Rotada kısalma</span><span class="stat-icon green">↘</span></div><div class="stat-value"><span id="saving-percent">—</span><small>%</small></div><div class="stat-foot" id="saving-meters">Yol ağı üzerinde hesaplanıyor</div></article>
-      </section>
-      <div class="operations-grid">
-        <section class="panel map-panel" aria-labelledby="map-heading"><div class="panel-heading"><div><h2 id="map-heading">Toplama haritası <span class="count-badge">20 kutu</span></h2><p>Gültepe ve çevresi · Altındağ, Ankara</p></div><span class="map-source-label">GERÇEK YOL AĞI</span></div>
-          <div class="map-toolbar"><div class="legend"><span><i class="dot orange-dot"></i>Toplama adayı</span><span><i class="dot green-dot"></i>Eşik altında / eşikte</span><span><i class="line-key"></i>Önerilen rota</span></div><label class="baseline-toggle"><input type="checkbox" id="baseline-toggle"> Tüm kutuların rotası</label></div>
-          <div class="map-canvas" id="map-canvas"><svg id="neighborhood-map" viewBox="0 0 1000 800" role="group" aria-label="Gültepe yolları ve seçilebilir sanal çöp kutuları"><defs><filter id="pin-shadow" x="-100%" y="-100%" width="300%" height="300%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".14"/></filter></defs><g id="map-world"></g></svg><div class="map-location"><span class="location-cross">⌖</span><div><strong>Gültepe</strong><small>Ankara / Altındağ</small></div></div><div class="map-controls"><button id="zoom-in" aria-label="Haritayı yakınlaştır">+</button><button id="zoom-out" aria-label="Haritayı uzaklaştır">−</button><button id="zoom-reset" aria-label="Haritayı başlangıç görünümüne getir">⌖</button></div><div class="map-scale"><span id="scale-bar"></span>100 m</div><div class="map-attribution">Yol verisi <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors · ODbL</a></div></div>
-          <div class="map-footer"><span><i class="dot depot-dot"></i> Başlangıç ve dönüş: örnek araç noktası</span><span id="route-computed-status">Rota hazırlanıyor…</span></div>
-        </section>
-        <section class="panel detail-panel" aria-labelledby="selected-heading"><div class="panel-heading"><div><span class="eyebrow">SEÇİLİ KUTU</span><h2 id="selected-heading">K01</h2></div><span class="bin-glyph">▥</span></div><p class="selected-street" id="selected-street">—</p><div class="fill-meter"><svg viewBox="0 0 180 180" aria-hidden="true"><circle class="meter-bg" cx="90" cy="90" r="73"/><circle id="meter-progress" cx="90" cy="90" r="73"/></svg><div class="meter-value"><strong id="selected-fill">82</strong><span>% doluluk</span></div></div><div class="selected-status" id="selected-status">Toplama adayı</div>
-          <div class="control-label"><label for="fill-slider">Sanal doluluk</label><span id="slider-value">%82</span></div><input id="fill-slider" type="range" min="0" max="100" step="1" value="82"><div class="range-labels"><span>Boş</span><span>Dolu</span></div><p class="control-help">Kaydırıcıyı değiştir; kutu seçimi ve rota otomatik güncellensin.</p>
-          <div class="sensor-import"><label for="distance-input">Tinkercad ölçümünü aktar <span>cm</span></label><div class="input-action"><input id="distance-input" type="text" inputmode="decimal" placeholder="Örn. 80 veya Mesafe: 80.0 cm" autocomplete="off"><button id="apply-distance" aria-label="Mesafe ölçümünü uygula">↵</button></div><p id="distance-message" class="input-message" role="status">Örnek kalibrasyon: boş 200 cm / dolu 20 cm.</p></div><button id="empty-bin" class="button secondary full-width">✓ Bu kutuyu boşalt</button><div class="selected-meta"><span id="selected-coordinates">—</span><span id="selected-update">Sanal veri</span></div>
-        </section>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Gültepe Mahallesi için 20 sanal kutuyla akıllı atık toplama ve yol ağı üzerinde rota simülasyonu."
+    />
+    <meta name="theme-color" content="#12634b" />
+    <title>Temiz Rota · Gültepe</title>
+    <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="data/map-data.js"></script>
+    <script defer src="route-engine.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="#overview" aria-label="Temiz Rota ana sayfa"
+        ><img src="assets/mark.svg" alt="" width="42" height="42" /><span
+          >temiz<span class="brand-light">rota</span
+          ><small>AKILLI ATIK TOPLAMA</small></span
+        ></a
+      >
+      <div class="workspace">
+        <span class="workspace-icon">G</span>
+        <div>
+          <strong>Gültepe Mahallesi</strong><small>Altındağ · Ankara</small>
+        </div>
+        <span class="chevron">⌄</span>
       </div>
-      <section class="panel route-panel" aria-labelledby="route-heading"><div class="panel-heading"><div><h2 id="route-heading">Bir tur, daha az durak.</h2><p>İki rota da aynı yol ağına ve aynı başlangıç noktasına göre hesaplanır.</p></div><span class="algorithm-label">Rota optimizasyonu</span></div><div class="route-summary"><div class="route-metric baseline-metric"><span><i></i>Bütün kutular</span><strong id="baseline-distance">—</strong><small>20 toplama durağı</small></div><span class="route-arrow">→</span><div class="route-metric"><span><i></i>Önerilen tur</span><strong id="optimized-distance">—</strong><small id="optimized-stops">— toplama durağı</small></div><div class="route-gain"><span id="saved-distance">—</span><small>daha az yol</small></div><div class="threshold-control"><label for="threshold">Toplama eşiği</label><div><span>%</span><input id="threshold" type="number" min="0" max="100" step="1" value="50" aria-describedby="threshold-rule"></div><small id="threshold-rule">Yalnızca eşiğin üzeri seçilir.</small></div></div><div class="route-itinerary" id="route-itinerary" aria-label="Önerilen toplama sırası"></div><div class="route-note">Mesafeler harita yol uzunluklarından hesaplanır. Yakıt ve süre tasarrufu için saha ölçümü gerekir.</div></section>
-      <section class="panel bins-panel" id="bins-section" aria-labelledby="bins-heading"><div class="panel-heading"><div><h2 id="bins-heading">Kutular <span class="count-badge">20</span></h2><p>Bir kutuyu seçerek doluluğunu değiştirebilir veya sensör ölçümü girebilirsin.</p></div><div class="table-tools"><label class="search-box"><span>⌕</span><input id="bin-search" type="search" placeholder="Kutu veya sokak ara" aria-label="Kutularda ara"></label><select id="scenario" aria-label="Örnek senaryo"><option value="default">14 dolu / 6 düşük</option><option value="empty">Tümü boş</option><option value="full">Tümü dolu</option></select><button class="icon-button" id="reset-button" aria-label="Başlangıç senaryosuna dön">↺</button></div></div><div class="filter-tabs" role="group" aria-label="Kutu filtresi"><button class="active" data-filter="all" aria-pressed="true">Tümü <span>20</span></button><button data-filter="collect" aria-pressed="false">Toplama adayları <span id="collect-tab-count">14</span></button><button data-filter="skip" aria-pressed="false">Eşik altında / eşikte <span id="skip-tab-count">6</span></button></div><div class="table-scroll"><table><thead><tr><th>Kutu</th><th>Konum / yol</th><th>Doluluk</th><th>Toplama durumu</th><th>Son güncelleme</th><th><span class="sr-only">İşlem</span></th></tr></thead><tbody id="bins-table"></tbody></table><div id="empty-search" hidden class="empty-state">Bu aramayla eşleşen kutu yok.</div></div></section>
-      <footer class="page-footer"><span>Temiz Rota <b>·</b> Gültepe simülasyonu</span><span>Ölç, planla, daha verimli topla.</span></footer>
-    </main>
-  </div>
-  <dialog id="method-dialog"><div class="dialog-top"><span class="eyebrow">PROJE HAKKINDA</span><button class="icon-button" id="close-dialog" aria-label="Bilgi penceresini kapat">×</button></div><h2>Sensörden toplama rotasına.</h2><p>Arduino Uno + HC-SR04 devresi Tinkercad'de mesafe ölçer. Bu panel, aynı 200 / 20 cm örnek kalibrasyonuyla mesafeyi doluluğa çevirir. Seri monitör çıktısını seçili kutuya elle aktarabilirsin.</p><ol><li><strong>Ölç:</strong> Hedef yaklaştıkça kutunun hesaplanan doluluğu artar.</li><li><strong>Seç:</strong> Yalnızca ayarlanan doluluk eşiğinin üzerindeki kutular toplanır.</li><li><strong>Planla:</strong> Yol ağı üzerinde toplama sırası yeniden hesaplanır.</li></ol><div class="dialog-note"><strong>Bu sürüm kapsamlı donanım projesinin demosudur.</strong> Önceki fiziksel çalışma Raspberry Pi 4, GPS ve Wi‑Fi/haberleşme modüllerini de kapsıyordu. Bu panel gerçek cihazlara bağlı değildir. Python kodları demo için yeniden yazılmıştır. Yol çizimleri OpenStreetMap verisidir. Kutu yerleri, depo ve doluluklar örnektir. Tek yönler hesaba katılır; dönüş yasakları ve kamyon kısıtları bu prototipte uygulanmaz. Rota, sürüş talimatı olarak kullanılmamalıdır.</div><p class="muted">Rota hesabı en kısa yol ve ziyaret sırası algoritmaları kullanır. Makine öğrenmesiyle dolma zamanı tahmini, veri biriktikten sonra eklenebilir.</p><a class="button primary" href="README.md" target="_blank">Kurulum ve proje notları ↗</a> <a class="button secondary" href="docs/PYTHON-INCELEME.md" target="_blank">Python inceleme rehberi ↗</a></dialog>
-  <div class="toast" id="toast" role="status" hidden></div>
-</body>
+      <div class="nav-label">ÇALIŞMA ALANI</div>
+      <nav aria-label="Ana menü">
+        <a href="#overview" class="nav-item active"><span>◫</span>Genel bakış</a
+        ><a href="#bins-section" class="nav-item"
+          ><span>▤</span>Kutular <b>20</b></a
+        ><button class="nav-item" id="method-button">
+          <span>⌘</span>Devre ve yöntem
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="small-orbit">↗</div>
+        <strong>Daha az yol.<br />Daha temiz bir mahalle.</strong>
+        <p>Doğru zamanda, doğru kutuya.</p>
+        <span class="simulation-tag"><i></i> Simülasyon projesi</span>
+      </div>
+    </aside>
+    <div class="page">
+      <header class="topbar">
+        <span
+          >Çalışma alanı <span class="slash">/</span>
+          <strong>Genel bakış</strong></span
+        >
+        <div class="topbar-right">
+          <span class="connection" id="engine-status"
+            ><i></i> Yerel çalışma</span
+          ><button
+            class="icon-button"
+            id="help-button"
+            aria-label="Proje hakkında"
+          >
+            ?</button
+          ><span class="avatar" aria-label="Erhan'ın projesi">E</span>
+        </div>
+      </header>
+      <main id="overview">
+        <div class="page-heading">
+          <div>
+            <div class="eyebrow">GÜLTEPE · ANKARA</div>
+            <h1>Mahallenin nabzı, tek ekranda.</h1>
+            <p>Dolulukları izle, toplama adaylarını seç, rotayı güncelle.</p>
+          </div>
+          <div class="heading-actions">
+            <button class="button secondary" id="export-button">
+              <span>↓</span> Verileri indir</button
+            ><button
+              class="button primary"
+              id="simulation-button"
+              aria-pressed="false"
+            >
+              <span>▶</span> Canlı simülasyon
+            </button>
+          </div>
+        </div>
+        <div class="notice">
+          <span class="notice-dot"></span>
+          <p>
+            <strong>20 sanal kutu, gerçek mahalle yolları.</strong> Kutu
+            konumları ve doluluklar örnektir; Tinkercad ölçümleri elle
+            aktarılır.
+          </p>
+          <span class="notice-label">DEMO</span>
+        </div>
+        <section
+          class="stats-grid"
+          aria-label="Toplama özeti"
+          aria-live="polite"
+        >
+          <article class="stat-card">
+            <div class="stat-top">
+              <span>İzlenen kutu</span><span class="stat-icon neutral">▤</span>
+            </div>
+            <div class="stat-value">20<small>kutu</small></div>
+            <div class="stat-foot">Gültepe ve çevresinde</div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-top">
+              <span>Toplama adayı</span><span class="stat-icon orange">↗</span>
+            </div>
+            <div class="stat-value">
+              <span id="candidate-count">—</span><small>kutu</small>
+            </div>
+            <div class="stat-foot">
+              <span class="orange-text" id="threshold-caption"
+                >%50 eşiğinin üzerinde</span
+              >
+            </div>
+          </article>
+          <article class="stat-card">
+            <div class="stat-top">
+              <span>Atlanan durak</span><span class="stat-icon green">✓</span>
+            </div>
+            <div class="stat-value">
+              <span id="skipped-count">—</span><small>kutu</small>
+            </div>
+            <div class="stat-foot">Bu turda toplama gerekmiyor</div>
+          </article>
+          <article class="stat-card accent-stat">
+            <div class="stat-top">
+              <span>Rotada kısalma</span><span class="stat-icon green">↘</span>
+            </div>
+            <div class="stat-value">
+              <span id="saving-percent">—</span><small>%</small>
+            </div>
+            <div class="stat-foot" id="saving-meters">
+              Yol ağı üzerinde hesaplanıyor
+            </div>
+          </article>
+        </section>
+        <div class="operations-grid">
+          <section class="panel map-panel" aria-labelledby="map-heading">
+            <div class="panel-heading">
+              <div>
+                <h2 id="map-heading">
+                  Toplama haritası <span class="count-badge">20 kutu</span>
+                </h2>
+                <p>Gültepe ve çevresi · Altındağ, Ankara</p>
+              </div>
+              <span class="map-source-label">GERÇEK YOL AĞI</span>
+            </div>
+            <div class="map-toolbar">
+              <div class="legend">
+                <span><i class="dot orange-dot"></i>Toplama adayı</span
+                ><span><i class="dot green-dot"></i>Eşik altında / eşikte</span
+                ><span><i class="line-key"></i>Önerilen rota</span>
+              </div>
+              <label class="baseline-toggle"
+                ><input type="checkbox" id="baseline-toggle" /> Tüm kutuların
+                rotası</label
+              >
+            </div>
+            <div class="map-canvas" id="map-canvas">
+              <svg
+                id="neighborhood-map"
+                viewBox="0 0 1000 800"
+                role="group"
+                aria-label="Gültepe yolları ve seçilebilir sanal çöp kutuları"
+              >
+                <defs>
+                  <filter
+                    id="pin-shadow"
+                    x="-100%"
+                    y="-100%"
+                    width="300%"
+                    height="300%"
+                  >
+                    <feDropShadow
+                      dx="0"
+                      dy="3"
+                      stdDeviation="3"
+                      flood-opacity=".14"
+                    />
+                  </filter>
+                </defs>
+                <g id="map-world"></g>
+              </svg>
+              <div class="map-location">
+                <span class="location-cross">⌖</span>
+                <div>
+                  <strong>Gültepe</strong><small>Ankara / Altındağ</small>
+                </div>
+              </div>
+              <div class="map-controls">
+                <button id="zoom-in" aria-label="Haritayı yakınlaştır">+</button
+                ><button id="zoom-out" aria-label="Haritayı uzaklaştır">
+                  −</button
+                ><button
+                  id="zoom-reset"
+                  aria-label="Haritayı başlangıç görünümüne getir"
+                >
+                  ⌖
+                </button>
+              </div>
+              <div class="map-scale"><span id="scale-bar"></span>100 m</div>
+              <div class="map-attribution">
+                Yol verisi
+                <a
+                  href="https://www.openstreetmap.org/copyright"
+                  target="_blank"
+                  rel="noopener"
+                  >© OpenStreetMap contributors · ODbL</a
+                >
+              </div>
+            </div>
+            <div class="map-footer">
+              <span
+                ><i class="dot depot-dot"></i> Başlangıç ve dönüş: örnek araç
+                noktası</span
+              ><span id="route-computed-status">Rota hazırlanıyor…</span>
+            </div>
+          </section>
+          <section
+            class="panel detail-panel"
+            aria-labelledby="selected-heading"
+          >
+            <div class="panel-heading">
+              <div>
+                <span class="eyebrow">SEÇİLİ KUTU</span>
+                <h2 id="selected-heading">K01</h2>
+              </div>
+              <span class="bin-glyph">▥</span>
+            </div>
+            <p class="selected-street" id="selected-street">—</p>
+            <div class="fill-meter">
+              <svg viewBox="0 0 180 180" aria-hidden="true">
+                <circle class="meter-bg" cx="90" cy="90" r="73" />
+                <circle id="meter-progress" cx="90" cy="90" r="73" />
+              </svg>
+              <div class="meter-value">
+                <strong id="selected-fill">82</strong><span>% doluluk</span>
+              </div>
+            </div>
+            <div class="selected-status" id="selected-status">
+              Toplama adayı
+            </div>
+            <div class="control-label">
+              <label for="fill-slider">Sanal doluluk</label
+              ><span id="slider-value">%82</span>
+            </div>
+            <input
+              id="fill-slider"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="82"
+            />
+            <div class="range-labels"><span>Boş</span><span>Dolu</span></div>
+            <p class="control-help">
+              Kaydırıcıyı değiştir; kutu seçimi ve rota otomatik güncellensin.
+            </p>
+            <div class="sensor-import">
+              <label for="distance-input"
+                >Tinkercad ölçümünü aktar <span>cm</span></label
+              >
+              <div class="input-action">
+                <input
+                  id="distance-input"
+                  type="text"
+                  inputmode="decimal"
+                  placeholder="Örn. 80 veya Mesafe: 80.0 cm"
+                  autocomplete="off"
+                /><button
+                  id="apply-distance"
+                  aria-label="Mesafe ölçümünü uygula"
+                >
+                  ↵
+                </button>
+              </div>
+              <p id="distance-message" class="input-message" role="status">
+                Örnek kalibrasyon: boş 200 cm / dolu 20 cm.
+              </p>
+            </div>
+            <button id="empty-bin" class="button secondary full-width">
+              ✓ Bu kutuyu boşalt
+            </button>
+            <div class="selected-meta">
+              <span id="selected-coordinates">—</span
+              ><span id="selected-update">Sanal veri</span>
+            </div>
+          </section>
+        </div>
+        <section class="panel route-panel" aria-labelledby="route-heading">
+          <div class="panel-heading">
+            <div>
+              <h2 id="route-heading">Bir tur, daha az durak.</h2>
+              <p>
+                İki rota da aynı yol ağına ve aynı başlangıç noktasına göre
+                hesaplanır.
+              </p>
+            </div>
+            <span class="algorithm-label">Rota optimizasyonu</span>
+          </div>
+          <div class="route-summary">
+            <div class="route-metric baseline-metric">
+              <span><i></i>Bütün kutular</span
+              ><strong id="baseline-distance">—</strong
+              ><small>20 toplama durağı</small>
+            </div>
+            <span class="route-arrow">→</span>
+            <div class="route-metric">
+              <span><i></i>Önerilen tur</span
+              ><strong id="optimized-distance">—</strong
+              ><small id="optimized-stops">— toplama durağı</small>
+            </div>
+            <div class="route-gain">
+              <span id="saved-distance">—</span><small>daha az yol</small>
+            </div>
+            <div class="threshold-control">
+              <label for="threshold">Toplama eşiği</label>
+              <div>
+                <span>%</span
+                ><input
+                  id="threshold"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value="50"
+                  aria-describedby="threshold-rule"
+                />
+              </div>
+              <small id="threshold-rule">Yalnızca eşiğin üzeri seçilir.</small>
+            </div>
+          </div>
+          <div
+            class="route-itinerary"
+            id="route-itinerary"
+            aria-label="Önerilen toplama sırası"
+          ></div>
+          <div class="route-note">
+            Mesafeler harita yol uzunluklarından hesaplanır. Yakıt ve süre
+            tasarrufu için saha ölçümü gerekir.
+          </div>
+        </section>
+        <section
+          class="panel bins-panel"
+          id="bins-section"
+          aria-labelledby="bins-heading"
+        >
+          <div class="panel-heading">
+            <div>
+              <h2 id="bins-heading">
+                Kutular <span class="count-badge">20</span>
+              </h2>
+              <p>
+                Bir kutuyu seçerek doluluğunu değiştirebilir veya sensör ölçümü
+                girebilirsin.
+              </p>
+            </div>
+            <div class="table-tools">
+              <label class="search-box"
+                ><span>⌕</span
+                ><input
+                  id="bin-search"
+                  type="search"
+                  placeholder="Kutu veya sokak ara"
+                  aria-label="Kutularda ara" /></label
+              ><select id="scenario" aria-label="Örnek senaryo">
+                <option value="default">14 dolu / 6 düşük</option>
+                <option value="empty">Tümü boş</option>
+                <option value="full">Tümü dolu</option></select
+              ><button
+                class="icon-button"
+                id="reset-button"
+                aria-label="Başlangıç senaryosuna dön"
+              >
+                ↺
+              </button>
+            </div>
+          </div>
+          <div class="filter-tabs" role="group" aria-label="Kutu filtresi">
+            <button class="active" data-filter="all" aria-pressed="true">
+              Tümü <span>20</span></button
+            ><button data-filter="collect" aria-pressed="false">
+              Toplama adayları <span id="collect-tab-count">14</span></button
+            ><button data-filter="skip" aria-pressed="false">
+              Eşik altında / eşikte <span id="skip-tab-count">6</span>
+            </button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Kutu</th>
+                  <th>Konum / yol</th>
+                  <th>Doluluk</th>
+                  <th>Toplama durumu</th>
+                  <th>Son güncelleme</th>
+                  <th><span class="sr-only">İşlem</span></th>
+                </tr>
+              </thead>
+              <tbody id="bins-table"></tbody>
+            </table>
+            <div id="empty-search" hidden class="empty-state">
+              Bu aramayla eşleşen kutu yok.
+            </div>
+          </div>
+        </section>
+        <footer class="page-footer">
+          <span>Temiz Rota <b>·</b> Gültepe simülasyonu</span
+          ><span>Ölç, planla, daha verimli topla.</span>
+        </footer>
+      </main>
+    </div>
+    <dialog id="method-dialog">
+      <div class="dialog-top">
+        <span class="eyebrow">PROJE HAKKINDA</span
+        ><button
+          class="icon-button"
+          id="close-dialog"
+          aria-label="Bilgi penceresini kapat"
+        >
+          ×
+        </button>
+      </div>
+      <h2>Sensörden toplama rotasına.</h2>
+      <p>
+        Arduino Uno + HC-SR04 devresi Tinkercad'de mesafe ölçer. Bu panel, aynı
+        200 / 20 cm örnek kalibrasyonuyla mesafeyi doluluğa çevirir. Seri
+        monitör çıktısını seçili kutuya elle aktarabilirsin.
+      </p>
+      <ol>
+        <li>
+          <strong>Ölç:</strong> Hedef yaklaştıkça kutunun hesaplanan doluluğu
+          artar.
+        </li>
+        <li>
+          <strong>Seç:</strong> Yalnızca ayarlanan doluluk eşiğinin üzerindeki
+          kutular toplanır.
+        </li>
+        <li>
+          <strong>Planla:</strong> Yol ağı üzerinde toplama sırası yeniden
+          hesaplanır.
+        </li>
+      </ol>
+      <div class="dialog-note">
+        <strong>Bu sürüm, projenin donanım gerektirmeyen demosu.</strong>
+        Donanımlı çalışmada Raspberry Pi 4, GPS ve Wi-Fi/haberleşme modülleri
+        kullandık. Burada 20 sanal kutuyla aynı fikri deneyebilirsin. Harita
+        yolları OpenStreetMap'ten geliyor; kutu yerleri ve doluluklar örnek.
+      </div>
+      <p class="muted">
+        Rota hesabı en kısa yol ve ziyaret sırası algoritmaları kullanır. Makine
+        öğrenmesiyle dolma zamanı tahmini, veri biriktikten sonra eklenebilir.
+      </p>
+      <a class="button primary" href="README.md" target="_blank"
+        >Kurulum ve proje notları ↗</a
+      >
+      <a class="button secondary" href="docs/PYTHON-INCELEME.md" target="_blank"
+        >Python kodları ↗</a
+      >
+      <a
+        class="button secondary"
+        href="docs/algoritma-akis-semasi.svg"
+        target="_blank"
+      >
+        Algoritma akış şeması ↗
+      </a>
+    </dialog>
+    <div class="toast" id="toast" role="status" hidden></div>
+  </body>
 </html>

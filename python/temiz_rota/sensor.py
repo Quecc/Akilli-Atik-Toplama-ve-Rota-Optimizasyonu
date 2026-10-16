@@ -41,7 +41,9 @@ class Calibration:
         minimum = finite_number(self.min_cm, "En küçük mesafe")
         maximum = finite_number(self.max_cm, "En büyük mesafe")
         if not 0 < minimum <= full < empty <= maximum:
-            raise ValueError("Kalibrasyonda 0 < alt sınır ≤ dolu < boş ≤ üst sınır olmalı.")
+            raise ValueError(
+                "Kalibrasyonda 0 < alt sınır ≤ dolu < boş ≤ üst sınır olmalı."
+            )
 
     def fill_percent(self, distance_cm: object) -> float:
         """Geçerli mesafeden %0–100 arasında yaklaşık seviye üret.
@@ -54,7 +56,9 @@ class Calibration:
         except ValueError as error:
             raise MeasurementError(str(error)) from error
         if not self.min_cm <= distance <= self.max_cm:
-            raise MeasurementError(f"Mesafe {self.min_cm:g}–{self.max_cm:g} cm arasında olmalı.")
+            raise MeasurementError(
+                f"Mesafe {self.min_cm:g}–{self.max_cm:g} cm arasında olmalı."
+            )
         fill = 100.0 * (self.empty_cm - distance) / (self.empty_cm - self.full_cm)
         return min(100.0, max(0.0, fill))
 
@@ -74,7 +78,9 @@ def parse_distance(value: object, calibration: Calibration | None = None) -> flo
         else:
             match = re.search(r"Mesafe\s*:\s*(\d+(?:[.,]\d+)?)\s*cm\b", text, re.I)
             if not match:
-                raise MeasurementError("Santimetre cinsinden sayı veya 'Mesafe: 80.0 cm' satırı girin.")
+                raise MeasurementError(
+                    "Santimetre cinsinden sayı veya 'Mesafe: 80.0 cm' satırı girin."
+                )
             distance = float(match.group(1).replace(",", "."))
     else:
         try:

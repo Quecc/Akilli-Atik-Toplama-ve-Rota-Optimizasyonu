@@ -1,5 +1,13 @@
 # Web paneli doğrulaması — 16 Ekim 2026
 
+## 0.3 sürümü — kod düzenlemesi ve akış şeması
+
+Python'da kutu doğrulama ve tura kutu ekleme adımları ayrı fonksiyonlara alındı. Web dosyalarındaki sıkıştırılmış satırlar açıldı; Dijkstra kuyruğundaki değişken adları netleştirildi. Bu değişikliklerden sonra **24 Python ve 7 JavaScript testi geçti**. Python ve JavaScript'in varsayılan rota sonuçları eşleşti.
+
+Tarayıcıda **8 kontrol geçti**: başlangıç senaryosu, 80 cm ölçüm, tam %50 sınırı, tümü boş, tümü dolu, güncellenen açıklama ve şema bağlantısı, mobil bilgi penceresinin taşmaması ve hata kaydı kontrolü. Sonuçlar [sadelestirme-tarayici-testleri.json](sadelestirme-tarayici-testleri.json) dosyasında. Test için 390 px görünüm seçildi; tarayıcının kullanılabilir içerik genişliği 375 px idi.
+
+[Akış şeması](ALGORITMA.md) SVG ve PNG olarak açılıp metinler ve bağlantılar kontrol edildi. Düzenlenebilir draw.io kaynağı da eklendi. Aşağıdaki kayıtlar önceki sürümlerin doğrulamasını korur.
+
 ## Otomatik testler
 
 `python python/run_tests.py`: **24 test geçti, 0 hata, 0 atlanan** (Python 3.14.7; Node.js karşılaştırması da çalıştı).
@@ -29,7 +37,7 @@ Codex uygulama içi tarayıcısında **13 kontrol geçti**. Kayıt: [python-tara
 
 Güncel ekran görüntüleri: [Python paneli](web-paneli.png), [mobil](web-mobil.png). Terminal giriş noktası da ayrı çalıştırıldı: [14 adaylı Python çıktısı](python-ornek-sonuc.json), [K03 ölçümü sonrası 15 adaylı çıktı](python-olcum-sonucu.json), [%100 eşikte 0 adaylı çıktı](python-bos-tur.json).
 
-Python dosyaları yeniden yazılmış demo kodudur; eski donanım projesinden kurtarılmış kaynaklar değildir. Bu kontroller gerçek Raspberry Pi, GPS, Wi‑Fi veya sensör iletişimini doğrulamaz.
+Bu kontroller yazılım demosuna aittir; gerçek Raspberry Pi, GPS, Wi‑Fi veya sensör iletişimi denenmedi.
 
 ### Önceki web sürümünün arayüz kontrolleri
 

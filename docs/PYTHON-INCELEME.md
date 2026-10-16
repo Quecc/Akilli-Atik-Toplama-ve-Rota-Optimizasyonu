@@ -1,93 +1,96 @@
-# Öğretmen için Python inceleme rehberi
+# Python kodları
 
-Bu bölümün amacı Python uygulamasının web görünümünden bağımsız incelenebilmesidir. **Buradaki kod yeniden yazılmış demo kodudur.** Önceki Raspberry Pi/GPS/Wi‑Fi projesinin kaynak dosyaları bulunamadığından o dönemdeki yazılımın aynısı olduğu iddia edilmez.
+Python tarafını okuyacaksan şu sırayla ilerlemek daha kolay: **ölçüm → yol ağı → rota → uygulama**. Web paneli bu dosyaların ürettiği sonuçları gösteriyor.
 
-## Beş dakikada çalıştırma
+## Hızlı deneme
 
-Komutları deponun ana klasöründe çalıştırın. Python 3.10+ dışında zorunlu bağımlılık yoktur.
+Komutları projenin ana klasöründe çalıştır:
 
 ```sh
-python python/run_tests.py
 python python/run_demo.py --output sonuc.json
 python python/run_demo.py --distance 80 --bin K03 --output olcum-sonucu.json
+python python/run_tests.py
+```
+
+Python 3.10+ yeterli; ek paket gerekmiyor. İlk örnekte 14 kutu seçiliyor. K03'e 80 cm uygulandığında doluluk yaklaşık %66,7 oluyor ve sayı 15'e çıkıyor.
+
+Hazır çıktılar: [14 aday](python-ornek-sonuc.json), [ölçüm sonrası 15 aday](python-olcum-sonucu.json), [%100 eşikte boş tur](python-bos-tur.json).
+
+## 1. Mesafeden doluluğa — sensor.py
+
+[sensor.py](../python/temiz_rota/sensor.py) üç işi yapıyor:
+
+- `parse_distance`: sayı veya Tinkercad satırından mesafeyi okur.
+- `Calibration.fill_percent`: mesafeyi yaklaşık doluluğa çevirir.
+- `is_collection_candidate`: doluluğun eşikten büyük olup olmadığını kontrol eder.
+
+Boş mesafesi 200 cm, dolu mesafesi 20 cm. Bu değerler gerçek kutuya göre değiştirilmeli.
+
+| Mesafe | Doluluk | %50 eşiğinde |
+| --- | --- | --- |
+| 200 cm | %0 | Atlanır |
+| 110 cm | %50 | Atlanır |
+| 80 cm | Yaklaşık %66,7 | Toplanır |
+| 20 cm | %100 | Toplanır |
+
+Hatalı metin, sonsuz değer veya sensör aralığı dışındaki ölçüm hata verir. Böyle bir okumayı boş kutu olarak kabul etmiyorum.
+
+## 2. Yolları hazırlama — graph.py
+
+[graph.py](../python/temiz_rota/graph.py) haritadaki noktaları bir komşuluk listesine çeviriyor. Her bağlantının metre cinsinden uzunluğu var. Tek yönlü bir yolda, ters yönde bağlantı eklenmiyor.
+
+`dijkstra`, bir başlangıçtan diğer noktalara en kısa yolu buluyor. Araç noktası ve 20 kutu için bu işlem tekrarlanarak 21 × 21 mesafe tablosu hazırlanıyor. Tablo ve çizimde kullanılacak yol noktaları `Network` içinde tutuluyor.
+
+Bu hazırlık uygulama açılırken bir kez yapılıyor. Kutunun doluluğu değiştiğinde haritanın yeniden indirilmesine gerek yok.
+
+## 3. Ziyaret sırası — routing.py
+
+[routing.py](../python/temiz_rota/routing.py) içinde hesabı adımlara ayırdım:
+
+1. `validate_inputs`: mesafe tablosunu ve kutu numaralarını kontrol eder.
+2. `cheapest_insertion`: kalan kutuları, tura en az ek yol getiren konuma ekler.
+3. `improve`: sıranın bir bölümünü ters çevirip daha kısa tur arar. Bu adım 2-opt olarak geçiyor.
+4. `plan_tour`: farklı ilk durakları dener ve bulunan en iyi turu seçer.
+
+Yollarda gidiş ve dönüş mesafeleri farklı olabildiği için, sıra değişince bütün turun maliyeti tekrar hesaplanıyor. 2-opt en fazla 12 iyileştirme turu deniyor. Referans turdan yalnızca seçili kutuların bırakıldığı bir başlangıç da değerlendiriliyor.
+
+Dijkstra iki nokta arasındaki en kısa yolu bulur. Bütün kutuların en iyi ziyaret sırasını bulmak ise ayrı bir problem; burada kullandığım yöntem kesin optimum garantisi vermez.
+
+## 4. İşlemleri birleştirme — service.py
+
+[Planner](../python/temiz_rota/service.py), diğer dosyaları bir araya getiriyor:
+
+- `initial_bins`: başlangıç doluluklarını getirir.
+- `measurement`: tek bir mesafeyi doğrular ve yüzdeye çevirir.
+- `validate_bins`: bütün kutuların birer kez ve geçerli dolulukla gönderildiğini kontrol eder.
+- `plan`: adayları seçer, turu hesaplar ve sonuçları hazırlar.
+
+Sonuçta `candidateIds` toplanacak, `skippedIds` atlanacak kutuları içerir. `order` içindeki **0 araç noktasıdır**; 1–20 değerleri K01–K20 kutularını gösterir. `pathNodes` ise haritada çizilecek OSM yol noktalarıdır.
+
+`generatedAt` raporun oluşturulma zamanıdır. Demoda gerçek bir cihazın ölçüm zamanını ifade etmez.
+
+## 5. Terminal ve web
+
+[run_demo.py](../python/run_demo.py) doğrudan `Planner` ile çalışır. Tarayıcı gerektirmez.
+
+[server.py](../python/temiz_rota/server.py), aynı hesapları yerel HTTP üzerinden panele açar. Sunucuyu başlatmak için:
+
+```sh
 python python/run_server.py
 ```
 
-İlk komut testleri çalıştırır. İkinci komut 14 aday / 6 atlanan durak senaryosunu üretir. Üçüncü komut K03'ün mesafesini 80 cm kabul ederek doluluğunu yaklaşık %66,7 yapar; aday sayısı 15'e çıkar. Son komut [web panelini](http://127.0.0.1:4173) Python çekirdeğine bağlar.
+[Paneli aç](http://127.0.0.1:4173). Üstte “Python motoru” yazdığında sonuç Python API'sinden gelmiştir.
 
-Çalıştırılmış örnek çıktılar da depoda bulunur: [varsayılan senaryo](python-ornek-sonuc.json), [80 cm ölçüm sonrası](python-olcum-sonucu.json), [%100 eşikte boş tur](python-bos-tur.json). Bunlar simülasyon raporlarıdır.
-
-## Okuma sırası
-
-### 1. Sensör verisi: sensor.py
-
-[`Calibration`](../python/temiz_rota/sensor.py) boş/dolu mesafelerini doğrular ve mesafeyi yüzdeye dönüştürür. `parse_distance`, çıplak sayı veya Tinkercad seri satırını okuyabilir. Türkçe ondalık virgülünü destekler. `finite_number`, mantıksal değer, NaN ve sonsuzluğu geçerli ölçüm gibi kabul etmez.
-
-| Girdi | Beklenen sonuç |
+| API | İşlev |
 | --- | --- |
-| 200 cm | %0 |
-| 110 cm | %50; varsayılan eşikte aday değil |
-| 80 cm | Yaklaşık %66,7; aday |
-| 20 cm | %100 |
-| 1 cm / 401 cm / hatalı metin | Hata; boş kutu olarak yorumlanmaz |
+| GET `/api/health` | Sunucunun hazır olduğunu bildirir |
+| POST `/api/measurement` | `{"measurement":"80,0"}` girdisinden doluluk hesaplar |
+| POST `/api/plan` | `bins: [{id, fill}, ...]` ve `threshold` ile tur hesaplar |
 
-Kalibrasyon 200/20 cm örnektir. Bu hesap yüzey mesafesinden yaklaşık yükseklik doluluğu çıkarır; düzensiz atığın gerçek hacmini ölçmez. Python bu sürümde GPIO, GPS veya seri port okumaz; yalnızca kendisine verilen örnek ölçümü işler.
+Sunucu yalnızca bu bilgisayardaki `127.0.0.1` adresini dinler. Gerçek GPIO, GPS veya seri port bağlantısı bu sürümde bulunmuyor.
 
-### 2. Yol ağı: graph.py
+## Testler ve şema
 
-[`build_graph`](../python/temiz_rota/graph.py) OSM yol noktalarını komşuluk listesine dönüştürür. Kenar ağırlıkları metre cinsinden Haversine mesafesidir. Tek yön `yes/1/true`, ters yön `-1` ve çift yön ayrılır.
+[test_demo.py](../python/tests/test_demo.py) ölçüm, eşik, yönlü yol, ziyaret sırası ve API davranışlarını kontrol ediyor. JavaScript karşılaştırması [python-comparison.cjs](../tests/python-comparison.cjs) dosyasında; Node.js yoksa yalnızca bu kontrol atlanıyor.
 
-`dijkstra`, `heapq` öncelik kuyruğu ile negatif olmayan ağırlıklı grafikte en kısa yolu bulur. Ulaşılamayan durak hatadır. `Network.from_map`, başlangıç + 20 kutu için 21×21 mesafe matrisi ve yol düğümlerini hazırlar. Bu veri sunucu açılırken bir kez hesaplanır.
-
-Grafiğin Dijkstra adımı için yaklaşık maliyet `O((V+E) log V)`; 21 başlangıçtan matris hazırlanır. Bu sayı demo ölçeğidir; büyük şehir için ayrıca ölçekleme çalışması gerekir.
-
-### 3. Ziyaret sırası: routing.py
-
-[`plan_tour`](../python/temiz_rota/routing.py), seçili kutulara uğrayıp başlangıca dönen bir tur üretir. Farklı başlangıçlar için en ucuz ekleme denenir; ardından 2-opt iyileştirmesi uygulanır. Yönlü yollarda iki düğüm arasındaki gidiş ve dönüş farklı olabileceğinden, değiştirilen turun **tam yönlü maliyeti** yeniden hesaplanır. İyileştirme en fazla 12 tur sürer.
-
-Bütün kutuların referans turundan yalnızca adaylara indirgenmiş bir başlangıç da denenir. Bu, aynı mesafe matrisinde karşılaştırmayı tutarlı tutar. Dijkstra ilgili noktalar arasındaki en kısa yolu bulur; ziyaret sırası sezgisel bir çözümdür ve **kesin optimum iddiası yoktur**.
-
-### 4. Uygulama kuralları: service.py
-
-[`Planner`](../python/temiz_rota/service.py) veri dosyasını yükler, grafiği ve karşılaştırma turunu hazırlar. `measurement()` ölçümü doğrular. `plan()` bütün kutuların doluluğunu ve eşiği alarak rapor üretir.
-
-- Eşik kuralı kesin olarak `fill > threshold`; eşitlik toplama adayı değildir.
-- API'ye tam 20 benzersiz ve bilinen kutu gönderilmelidir. Eksik veya yinelenmiş kayıt reddedilir.
-- Doluluk ve eşik %0–100 arasında sonlu sayılar olmalıdır.
-- Aynı aday kümesi için tur sonucu sınırlı önbellekte tutulur.
-- Raporun `engine: "python"` ve `simulation: true` alanları hesap kaynağını ve demo niteliğini belirtir.
-- `order` içindeki `0` araç noktası, `1..20` sırasıyla `K01..K20` kutularıdır. `pathNodes`, çizimde kullanılacak gerçek OSM yol düğümleridir.
-- Sonuçtaki UTC zaman damgası **rapor üretim zamanıdır**; gerçek sensörün ölçüm zamanı değildir.
-
-Varsayılan sonuç yaklaşık 14,55 km referans tur, 12,53 km aday tur ve %13,9 mesafe kısalmasıdır. Bunlar yakıt veya süre ölçümü değildir.
-
-### 5. Giriş noktaları ve web bağlantısı
-
-[`run_demo.py`](../python/run_demo.py), `Planner` sınıfını doğrudan kullanır. Tarayıcı, Node.js veya Arduino gerektirmez. `--help` ile seçenekler görülebilir.
-
-[`server.py`](../python/temiz_rota/server.py), standart kütüphanedeki `ThreadingHTTPServer` üzerinde çalışır. `run_server.py` sunucuyu başlatır. Dinleme adresi yalnızca `127.0.0.1`'dir.
-
-| Yol | Yöntem | İşlev |
-| --- | --- | --- |
-| `/api/health` | GET | Python motorunun hazır olduğunu bildirir |
-| `/api/measurement` | POST | `{"measurement":"80,0"}` → yaklaşık %66,7 |
-| `/api/plan` | POST | `bins: [{id, fill}, ...]` ve `threshold` → adaylar, tur ve mesafeler |
-
-POST gövdesi JSON olmalıdır. Bilinen yerel origin dışındaki tarayıcı istekleri reddedilir. `.git` gibi gizli dosyalar sunulmaz. Bu yerel demo sunucusu, kimlik doğrulama ve üretim dağıtımı içeren bir servis değildir.
-
-Panelde Python yanıtı alınırken üstte **“Python motoru”** yazısı görülür. Python API yoksa JavaScript alternatifi kullanılır ve hesap kaynağı değiştirilir. Bu nedenle yalnızca panelin açılması Python'un çalıştığına kanıt sayılmaz; motor göstergesi veya `/api/health` yanıtı da kontrol edilmelidir.
-
-## Testlerin kapsamı
-
-[`test_demo.py`](../python/tests/test_demo.py) standart `unittest` kullanır. **24 test** dört gruptadır:
-
-1. Sensör kalibrasyonu, mesafe ayrıştırma ve eşik sınırları.
-2. Yönlü grafikte Dijkstra, erişilemeyen yol, asimetrik tur ve boş/tek/tam seçimler.
-3. Gerçek demo verisindeki 441 nokta çifti yolunun yönlü kenarlarla ve mesafe matrisiyle uyumu; 14/6 senaryosu; hatalı kayıtlar; JavaScript/Python karşılaştırması.
-4. Gerçek yerel HTTP sunucusuna sağlık, ölçüm, planlama, hatalı istek ve gizli dosya erişim denemeleri.
-
-JavaScript karşılaştırması için Node.js gerekir; yoksa yalnızca o test atlanır. Diğer Python testleri ve uygulama bağımsız çalışır. Testlerin geçmesi gerçek sensör, GPS, Wi‑Fi, trafik veya yakıt tasarrufunu doğrulamaz. Çalıştırma kaydı: [DOGRULAMA.md](DOGRULAMA.md).
-
-## İleride eklenecek Python çalışmaları
-
-Gerçek donanım için cihaz okuma, kutuya özel kalibrasyon, zaman damgası, bağlantı ve eskimiş ölçüm yönetimi; ardından veri kaydı ve saha doğrulaması gerekir. Makine öğrenmesiyle dolma zamanı tahmini için önce gerçek geçmiş ölçümler toplanmalıdır. Bunlar bu depoda tamamlanmış özellikler değildir.
+[Akış şeması ve kod eşleştirmesi](ALGORITMA.md) · [Test kayıtları](DOGRULAMA.md)

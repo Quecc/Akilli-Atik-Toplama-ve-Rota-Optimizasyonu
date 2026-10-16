@@ -1,210 +1,134 @@
 # Temiz Rota — Akıllı Atık Toplama ve Rota Optimizasyonu
 
-**Durum: DEMO / SİMÜLASYON · Python + web paneli + Tinkercad**
+Çöp toplama araçlarının, doluluk durumuna bakmadan her kutuya uğraması yerine ihtiyaç olan kutulara yönelmesini istedim. Bu projedeki amacım, sensörlerden gelen bilgiyle toplama sırasını belirlemek ve gereksiz durakları azaltmak.
 
-Doluluk bilgisine göre toplama gerektiren çöp kutularını seçen ve bu kutular için yol ağı üzerinde tur hesaplayan bir gösterim projesidir. Örnek çalışma alanı **Gültepe Mahallesi ve çevresi, Altındağ / Ankara**; senaryo **20 sanal kutu, %50'nin üzerinde 14 toplama adayı, 6 atlanan durak** içerir.
+Projenin donanımlı çalışmasında Raspberry Pi 4, mesafe sensörü, GPS ve Wi-Fi/haberleşme modülleri kullandık. Bir süre ara verdikten sonra projeyi yeniden ele aldım. **Bu depoda, fiziksel donanım olmadan da denenebilen demo sürümünü paylaşıyorum.** Yazılım bu demo için yeniden hazırlandı; Tinkercad devresi ve bilgisayarda çalışan bir web paneli içeriyor.
 
-> **Bu depo, daha kapsamlı bir donanım projesinin yeniden hazırlanmış demosudur.** Proje sahibinin aktarımına göre önceki fiziksel çalışmada **Raspberry Pi 4, mesafe sensörleri, GPS ve Wi‑Fi/haberleşme modülleri** kullanılmıştır. Buradaki sürüm o kurulumun tamamını içermez ve fiziksel cihazlara bağlı çalışmaz. Eski kaynak kodlar mevcut olmadığından bu depodaki Python kodları demo için yeniden yazılmıştır; önceki projenin kurtarılmış Python kodları olarak sunulmaz.
+## Demo nasıl çalışıyor?
 
-## Python kodlarını inceleyecek öğretmen için
+Örnek olarak Ankara, Altındağ'daki **Gültepe Mahallesi ve çevresini** kullandım. Haritadaki yollar OpenStreetMap'ten geliyor. 20 kutunun konumu, dolulukları ve aracın başlangıç noktası ise deneme için oluşturuldu.
 
-**Ana inceleme noktası [`python/`](python/) klasörüdür.** Sensör hesabı, yol grafiği, Dijkstra, tur iyileştirme, terminal uygulaması ve HTTP API burada bulunur. Web paneli Python sunucusuyla açıldığında ölçüm ve rota sonuçlarını bu çekirdekten alır.
+1. Kutunun üstündeki sensörün ölçtüğü mesafe, yaklaşık doluluğa çevriliyor.
+2. Doluluk **%50'nin üzerindeyse** kutu toplama listesine ekleniyor.
+3. Seçilen kutular için yol ağı üzerinde bir ziyaret sırası hesaplanıyor.
+4. Doluluk değiştiğinde panel ve toplama rotası güncelleniyor.
 
-Önerilen okuma sırası ve örnekler: **[Python inceleme rehberi](docs/PYTHON-INCELEME.md)**.
-
-| Sıra | Python dosyası | İncelenecek konu |
-| --- | --- | --- |
-| 1 | [sensor.py](python/temiz_rota/sensor.py) | Mesafe doğrulama, kalibrasyon, doluluk ve kesin eşik kuralı |
-| 2 | [graph.py](python/temiz_rota/graph.py) | OSM yol grafiği, tek yönler, Dijkstra ve yol oluşturma |
-| 3 | [routing.py](python/temiz_rota/routing.py) | Çok başlangıçlı en ucuz ekleme ve yönlü 2-opt |
-| 4 | [service.py](python/temiz_rota/service.py) | 20 kutuluk senaryo, veri doğrulama ve sonuç raporu |
-| 5 | [run_demo.py](python/run_demo.py) | Web arayüzü olmadan çalıştırılabilen terminal demosu |
-| 6 | [server.py](python/temiz_rota/server.py) | Web panelinin kullandığı yerel ölçüm ve rota API'si |
-| 7 | [test_demo.py](python/tests/test_demo.py) | 24 otomatik test; sınır durumları ve gerçek HTTP istekleri |
-
-## Amaç ve örnek senaryo
-
-Her kutuya aynı turda uğramak yerine doluluk eşiğini aşan kutuların toplama listesine alınması hedeflenir. Daha az toplama durağı ve daha kısa bir tur; zaman, yakıt ve araç kullanımı bakımından fayda sağlayabilir. Bu depoda **ölçülmüş yakıt, süre, emisyon veya araç ömrü sonucu yoktur**; ekranda gösterilen kısalma, yalnızca örnek yol ağı üzerinde hesaplanan mesafe karşılaştırmasıdır.
-
-20 kutunun tümünü ziyaret eden karşılaştırma turu ile yalnızca 14 adayı ziyaret eden tur aynı yol ağı ve aynı başlangıç/dönüş noktası kullanılarak hesaplanır. Varsayılan senaryoda yaklaşık **14,55 km → 12,53 km**, yani **2,02 km / %13,9** daha kısa yol bulunur. Doluluk veya eşik değiştiğinde sonuç yeniden hesaplanır.
-
-Toplama listesine alınmayan kutunun bulunduğu sokaktan geçmek gerekebilir. Atlanan şey o kutudaki toplama durağıdır.
+Başlangıç senaryosunda **14 kutu toplanacak, 6 kutu atlanacak** şekilde ayarlı. Tam %50 dolu bir kutu listeye girmiyor; eşikten büyük olması gerekiyor.
 
 ![Temiz Rota web paneli](docs/web-paneli.png)
 
-## Kapsamlı fiziksel proje ile bu demo arasındaki ilişki
+## Algoritma akış şeması
 
-| Bileşen | Önceki fiziksel proje — proje sahibinin aktarımı | Bu depodaki demo |
-| --- | --- | --- |
-| Raspberry Pi 4 | Donanım sisteminin parçası | GPIO veya cihaz bağlantısı yok; yazılım bilgisayarda çalışır |
-| Mesafe sensörü | Kutu içindeki mesafe üzerinden doluluk | Tinkercad'de Uno + HC-SR04; panelde elle ölçüm girişi |
-| GPS | Konumlandırma bileşeni | Gerçek GPS okuması yok; haritada örnek sabit koordinatlar |
-| Wi‑Fi / haberleşme modülleri | Verinin iletilmesi için kapsamda | Gerçek kablosuz cihazdan veri alınmaz; tarayıcı–Python iletişimi yerel HTTP ile olur |
-| Çöp kutuları | Fiziksel prototip | 20 sanal kutu; belediyenin gerçek kutu envanteri değildir |
-| Kodlar | Önceki kaynak kodlara erişilemiyor | Python, JavaScript ve Arduino demo kodları yeniden hazırlanmıştır |
+Hazırlık, veri kontrolü, doluluk hesabı, kutu seçimi ve rota oluşturma adımları:
 
-Eski GPS/Wi‑Fi modüllerinin tam modeli, önceki bağlantı şeması ve geçmiş yazılımın ayrıntıları doğrulanmış değildir. Bu demo, o sistemin birebir yeniden üretimi olarak değerlendirilmemelidir.
+[![Temiz Rota algoritma akış şeması](docs/algoritma-akis-semasi.png)](docs/algoritma-akis-semasi.svg)
 
-## Kurulum ve çalıştırma
+**[Büyütülebilir SVG](docs/algoritma-akis-semasi.svg) · [PNG](docs/algoritma-akis-semasi.png) · [Düzenlenebilir draw.io dosyası](docs/algoritma-akis-semasi.drawio)**
 
-**Python 3.10 veya üzeri** yeterlidir. Python çekirdeği yalnızca standart kütüphaneyi kullanır; `pip install`, API anahtarı, ücretli servis veya fiziksel donanım gerektirmez. Doğrulama Python 3.14.7 ile yapılmıştır.
+Şemadaki adımların kodda nereye karşılık geldiği [akış açıklamasında](docs/ALGORITMA.md) bulunuyor.
 
-Depoyu klonlayıp klasöre geçin:
+## Bilgisayarda çalıştırma
+
+Python 3.10 veya üzeri yeterli. Ek Python paketi ya da API anahtarı gerekmiyor.
 
 ```sh
 git clone https://github.com/Quecc/Akilli-Atik-Toplama-ve-Rota-Optimizasyonu.git
 cd Akilli-Atik-Toplama-ve-Rota-Optimizasyonu
-```
-
-### Web paneli ve Python motoru
-
-```sh
 python python/run_server.py
 ```
 
-Tarayıcıda [yerel paneli](http://127.0.0.1:4173) açın. Üst çubuktaki **“Python motoru”**, ekrandaki rotanın Python API yanıtından geldiğini gösterir. İlk hesap sırasında kısa süre “Python hesaplıyor” görünebilir.
+Ardından tarayıcıda **[127.0.0.1:4173](http://127.0.0.1:4173)** adresini aç. Windows'ta `BASLAT.cmd` dosyasına çift tıklayarak da başlatabilirsin.
 
-Windows'ta **`BASLAT.cmd`** dosyasına çift tıklamak da Python sunucusunu arka planda açar ve tarayıcıyı başlatır. Aynı Python sunucusu zaten çalışıyorsa tekrar kullanılır. Arka planda başlatılan sunucuyu kapatmak için Görev Yöneticisi'nde komut satırı `python/run_server.py` olan ilgili işlemi sonlandırın. Terminalden çalıştırıyorsanız **Ctrl+C** yeterlidir.
+Üstte **“Python motoru”** yazıyorsa rota Python tarafından hesaplanıyordur. Harita verisi klasörün içinde olduğu için normal kullanımda internet gerekmez. Sunucu yalnızca kendi bilgisayarından erişilebilen yerel adreste çalışır. Terminalden başlattıysan kapatmak için Ctrl+C kullanabilirsin.
 
-4173 portu doluysa:
+Port doluysa `python python/run_server.py --port 4174` komutunu çalıştırıp [4174 adresini](http://127.0.0.1:4174) aç. `BASLAT.cmd` ile arka planda başlattıysan Görev Yöneticisi'nde komut satırı `python/run_server.py` olan işlemi kapatabilirsin.
 
-```sh
-python python/run_server.py --port 4174
-```
+### Sadece Python ile denemek
 
-Bu durumda [alternatif yerel paneli](http://127.0.0.1:4174) açın. Sunucu yalnızca `127.0.0.1` üzerinde dinler. Harita verisi paketin içindedir; normal kullanım sırasında internet gerekmez. Sunucu üretim ortamına yönelik değildir.
-
-### Yalnızca Python: tarayıcısız inceleme
+Web panelini açmadan da aynı hesabı çalıştırabilirsin:
 
 ```sh
 python python/run_demo.py --output sonuc.json
 python python/run_demo.py --distance 80 --bin K03 --output olcum-sonucu.json
-python python/run_demo.py --threshold 100 --output bos-tur.json
 ```
 
-İlk komut 14 adaylı varsayılan senaryoyu, ikincisi K03'e 80 cm ölçüm uygulanınca oluşan **15 adaylı** senaryoyu, üçüncüsü hiçbir kutunun %100'ün üzerinde olmadığı **0 adaylı** senaryoyu üretir. Sonuç terminale ve belirtilen JSON dosyasına yazılır. Dosyada aday/atlanan kimlikleri, tur sırası, metre cinsinden mesafeler ve yol düğümleri bulunur.
+İlk komut 14 adaylı başlangıç senaryosunu verir. İkinci komut K03'e 80 cm ölçüm uygular: doluluğu yaklaşık %66,7 olur ve aday sayısı 15'e çıkar. Sonuçlar terminale ve belirtilen JSON dosyasına yazılır.
 
-### İsteğe bağlı JavaScript sürümü
+Kodun hangi bölümden okunabileceğini ve örnek girişleri [Python rehberinde](docs/PYTHON-INCELEME.md) anlattım.
 
-Python kullanmadan arayüzü çalıştırmak için Node.js 18 veya üzeriyle `node server.mjs` kullanılabilir. Bu modda hesap JavaScript ile yapılır ve panel bunu **“Tarayıcı hesabı”** olarak belirtir. Python API erişilemezse arayüz aynı JavaScript hesabına geçer; Python çalışıyormuş gibi göstermez. Python incelemesi için yukarıdaki Python komutlarını kullanın.
+## Tinkercad devresi
 
-## Panelde neler denenebilir?
+Fiziksel Arduino olmadan, Tinkercad'de **Arduino Uno + dört pinli HC-SR04** ile ölçümü deneyebilirsin.
 
-1. Başlangıçta **20 kutu / 14 aday / 6 atlanan durak** değerlerini kontrol edin.
-2. Harita veya tablodan bir kutu seçin; kaydırıcıyla %50 ve %51 deneyin. **Tam %50 aday değildir, %51 adaydır.**
-3. “Tüm kutuların rotası” ile karşılaştırma çizgisini açın.
-4. “Tümü boş” ve “Tümü dolu” senaryolarını deneyin; boş senaryoda önerilen tur 0 km'dir.
-5. “Bu kutuyu boşalt” ile yalnızca seçili sanal kutuyu sıfırlayın.
-6. “Canlı simülasyon” ile her 3 saniyede bir üretilen sanal değişimi başlatın/durdurun.
-7. Kutuları arayın, aday veya eşik altı/eşikte filtresi uygulayın.
-8. “Verileri indir” ile koordinatları, dolulukları, eşiği, turu ve kullanılan hesap motorunu JSON olarak indirin.
-
-## Tinkercad devresi ve mesafe aktarımı
-
-Fiziksel Uno gerektirmez. [simulasyon_doluluk.ino](arduino/simulasyon_doluluk/simulasyon_doluluk.ino) kodu, Tinkercad'de Arduino Uno + dört pinli HC-SR04 ile çalıştırılır.
-
-| HC-SR04 | Arduino Uno |
+| Sensör pini | Uno bağlantısı |
 | --- | --- |
 | VCC | 5V |
 | GND | GND |
 | TRIG | D9 |
 | ECHO | D10 |
 
-![Tinkercad üzerinde hazırlanan Uno ve HC-SR04 devresi](docs/tinkercad-devresi.png)
+![Tinkercad devresi](docs/tinkercad-devresi.png)
 
-[Tinkercad çalışma bağlantısı](https://www.tinkercad.com/things/7IQvomvfJ6q-shiny-bruticus/editel) düzenleme izni gerektirebilir. Devre görseli ve kaynak kod inceleme için depoda da bulunur.
+[Arduino simülasyon kodu](arduino/simulasyon_doluluk/simulasyon_doluluk.ino) · [Tinkercad çalışma bağlantısı](https://www.tinkercad.com/things/7IQvomvfJ6q-shiny-bruticus/editel)
 
-**Tinkercad ile panel arasında otomatik seri bağlantı yoktur.** Seri monitördeki ölçümü panelde seçili kutunun “Tinkercad ölçümünü aktar” alanına elle girin. `80`, `80,0` veya `Mesafe: 80.0 cm | ...` kabul edilir; sonuç yaklaşık **%66,7** olur.
+Tinkercad bağlantısı erişim izni isteyebilir; devre görseli ve kod burada da var. **Tinkercad ile panel arasında otomatik bağlantı kurulu değil.** Seri monitördeki değeri, seçtiğin kutunun ölçüm alanına elle yazıyorsun. Örneğin `80`, `80,0` veya `Mesafe: 80.0 cm`.
 
-Örnek kalibrasyon: boş kutu **200 cm**, dolu kutu **20 cm**.
+Demoda boş kutu mesafesini 200 cm, dolu seviyesini 20 cm kabul ettim:
 
 ```text
-doluluk (%) = 100 × (200 − mesafe_cm) / (200 − 20)
-toplama adayı = doluluk > eşik
+Doluluk = 100 × (200 − mesafe) / (200 − 20)
+
+200 cm → %0
+110 cm → %50
+ 80 cm → yaklaşık %66,7
+ 20 cm → %100
 ```
 
-Doluluk %0–100 aralığına sınırlandırılır. 2–400 cm dışındaki mesafeler, hatalı metin, NaN ve sonsuz değerler reddedilir; geçersiz ölçüm kutuyu boş saymaz. **110 cm → tam %50**, **80 cm → yaklaşık %66,7**. Tinkercad etiketindeki `in` inç, `cm` santimetredir; yüzde değildir.
+Geçerli ölçümün sonucu %0–100 arasında tutuluyor. 2–400 cm dışındaki mesafeler ve okunamayan girişler reddediliyor. Bu, sensörün gördüğü yüzeye göre yaklaşık bir doluluk hesabı; düzensiz çöplerin gerçek hacmini birebir ölçmüyor. Gerçek kutuda boş ve dolu mesafelerini ayrıca ayarlamak gerekiyor.
 
-Bu yüzde, sensörün gördüğü yüzey yüksekliğinden hesaplanan **yaklaşık doluluktur**. Düzensiz atık yüzeylerinde gerçek hacim doluluğunu birebir temsil etmez. Fiziksel kullanımda her kutuya uygun kalibrasyon ve saha doğrulaması gerekir. [arduino/doluluk_sensoru/](arduino/doluluk_sensoru/) içindeki fiziksel başlangıç örneği de kalibrasyon yapılmadan doğrulanmış ölçüm sunmaz.
+## Rota hesabı
 
-## Yazılım akışı ve rota yöntemi
+Python tarafında önce yolları bir grafik olarak hazırlıyorum. **Dijkstra**, kutular arasındaki en kısa yol mesafelerini buluyor. Ardından **en ucuz ekleme** yöntemiyle kutular tura yerleştiriliyor; **2-opt** ile ziyaret sırasının daha kısa olup olamayacağı deneniyor. Farklı ilk duraklar arasından bulunan en iyi tur seçiliyor.
 
-```mermaid
-flowchart TD
-  A[Tinkercad: Uno ve HC-SR04] -->|Ölçümü elle aktar| B[Web paneli]
-  C[Sanal kutu senaryoları] --> B
-  B -->|Yerel HTTP| D[Python: ölçüm doğrulama ve doluluk]
-  D --> E[Python: eşiği aşan kutuları seç]
-  F[Kaydedilmiş OSM yol ağı] --> G[Python: Dijkstra mesafe matrisi]
-  E --> H[Python: ziyaret sırasını iyileştir]
-  G --> H
-  H --> I[Haritada tur, duraklar ve mesafe karşılaştırması]
-  J[Python terminal demosu] --> E
-```
+Tek yönlü yollar hesaba katılıyor. Bu yöntem bütün olası turları taramadığı için kesin en kısa tur garantisi vermiyor. Ayrıntılı adımlar [routing.py](python/temiz_rota/routing.py) içinde.
 
-- Yol grafiğinde ardışık OSM noktalarının Haversine mesafesi kullanılır; tek yönler ve ters tek yönler hesaba katılır.
-- Dijkstra, araç başlangıcı ve 20 kutu arasındaki yönlü en kısa yolları bulur. Çizilen tur bu yolların düğümlerini izler.
-- Ziyaret sırası **çok başlangıçlı en ucuz ekleme + yönlü 2-opt** ile iyileştirilir. Yönlü grafikte ters çevirmenin maliyeti yeniden hesaplanır. **Küresel optimum garantisi yoktur.**
-- Karşılaştırmanın tutarlılığı için aday turda, bütün kutuların turundan seçili kutulara indirgenmiş bir başlangıç da değerlendirilir.
-- Bu sürümde **makine öğrenmesi modeli yoktur**. Rota optimizasyonu algoritmiktir. Geçmiş doluluk verisinden dolma zamanı tahmini, veri toplandıktan sonra ayrı bir geliştirme olabilir.
+Başlangıç örneğinde bütün kutuların turu yaklaşık **14,55 km**, aday kutuların turu **12,53 km** çıkıyor: yaklaşık **%13,9 mesafe kısalması**. Bu, örnek senaryonun sonucu; gerçek yakıt veya süre ölçümü yapmadım. Atlanan bir kutunun bulunduğu sokaktan yine geçilebilir, sadece o kutuda toplama yapılmaz.
 
-Araç kapasitesi, birden fazla kamyon, trafik, zaman pencereleri, dönüş yasakları, bariyerler ve kamyona özel yol kısıtları uygulanmaz. Çıktı sahada sürüş talimatı olarak kullanılacak navigasyon değildir.
+## Dosyalar
 
-## Testler ve doğrulama
+| Klasör / dosya | İçeriği |
+| --- | --- |
+| [python/](python/) | Doluluk, yol grafiği, rota hesabı, yerel API ve testler |
+| [arduino/](arduino/) | Tinkercad kodu ve fiziksel kurulum için başlangıç örneği |
+| [data/](data/) | OSM yol verisi ve 20 örnek kutu |
+| [docs/](docs/) | Akış şeması, devre, kod rehberi ve test kayıtları |
+| [app.js](app.js) | Web panelinin etkileşimleri |
+| [route-engine.js](route-engine.js) | Python açık olmadığında kullanılan tarayıcı hesabı |
+| [scripts/](scripts/) | Harita yenileme ve akış şeması üretme araçları |
+
+Python olmadan arayüzü denemek için Node.js 18+ ile `node server.mjs` çalıştırılabilir. Bu durumda üstte “Tarayıcı hesabı” yazar.
+
+## Testler
 
 ```sh
 python python/run_tests.py
-```
-
-**24 Python testi**; sensör/kalibrasyon, %50 sınırı, tek yön, ulaşılamayan yol, asimetrik tur, 21 nokta arasındaki **441 yolun** mevcut yönlü kenarları izlemesi, eksik/yinelenmiş veri ve gerçek HTTP API isteklerini kapsar. Node.js kuruluysa ayrıca Python ve JavaScript sonuçları aynı veri üzerinde karşılaştırılır; kurulu değilse yalnızca bu karşılaştırma testi atlanır.
-
-İsteğe bağlı JavaScript testleri:
-
-```sh
 node --test tests/route-engine.test.cjs
 ```
 
-**7 JavaScript testi** bulunur. Çalıştırma ve tarayıcı doğrulamasının kapsamı: [DOGRULAMA.md](docs/DOGRULAMA.md). Tinkercad/Arduino kanıtları ayrı tutulur: [ARDUINO-DOGRULAMA.md](docs/ARDUINO-DOGRULAMA.md). Fiziksel Raspberry Pi, GPS veya Wi‑Fi bağlantısı bu sürümde test edilmemiştir.
+24 Python ve 7 JavaScript testi bulunuyor. Ölçüm sınırları, %50 kuralı, tek yönlü yollar, boş/dolu senaryoları ve HTTP istekleri kontrol ediliyor. Python testlerindeki JavaScript karşılaştırması, Node.js kurulu değilse atlanır.
 
-## Dosya düzeni
+Sonuçlar ve denenen durumlar: [doğrulama kaydı](docs/DOGRULAMA.md). Devreye ait kayıtlar: [Arduino / Tinkercad testleri](docs/ARDUINO-DOGRULAMA.md).
 
-```text
-python/               Python çekirdeği, terminal demosu, yerel sunucu ve testler
-arduino/              Tinkercad kodu ve fiziksel kurulum için başlangıç örneği
-data/                 Kaydedilmiş OSM verisi: eşdeğer JSON ve tarayıcı JS sürümü
-docs/                 Python inceleme rehberi, doğrulama kayıtları ve görseller
-tests/                JavaScript çekirdek testleri
-scripts/              İsteğe bağlı harita yenileme betiği
-index.html            Türkçe web arayüzü
-app.js / styles.css   Panel davranışı ve görünüm
-route-engine.js       Tarayıcıda çalışan alternatif hesap motoru
-BASLAT.cmd / .ps1     Windows Python başlatıcısı
-server.mjs            İsteğe bağlı Node.js statik sunucusu
-```
+## Projenin devamı
 
-## Geliştirme yönü
+Bu sürümde gerçek Raspberry Pi, GPS veya Wi-Fi cihazından veri alınmıyor. Donanımlı sürüme dönerken sensör okumalarını ve konumları otomatik aktarmayı, geçmiş ölçümleri kaydetmeyi ve bağlantı kopmalarını yönetmeyi planlıyorum.
 
-1. Gerçek donanım envanterini ve kutu bazlı kalibrasyonu doğrulamak.
-2. Raspberry Pi üzerinden sensör okuma, zaman damgası ve bağlantı durumunu kaydetmek.
-3. Doğrulanmış GPS konumlarını ve Wi‑Fi üzerinden cihaz verisini sisteme aktarmak.
-4. Hatalı/eskimiş ölçüm durumunu ve çevrimdışı verileri ayrı yönetmek.
-5. Kamyon kapasitesi, çalışma saatleri ve gerçek yol kısıtlarını eklemek.
-6. Toplanan geçmiş verilerle dolma zamanı tahminini değerlendirmek; gerçek mesafe, süre ve yakıt sonuçlarını ölçmek.
+Sonraki adımlarda araç kapasitesi, birden fazla araç ve çalışma saatleri de rota hesabına eklenebilir. Bu demoda trafik, dönüş yasakları ve kamyona özel yol kısıtları uygulanmıyor.
 
-Bu maddeler mevcut özellik olarak sunulmaz; kapsamlı donanım sürümüne ilerlerken yapılacak çalışmalardır.
+Şu an makine öğrenmesi modeli kullanmıyorum. Yeterli ölçüm biriktikten sonra kutuların ne zaman dolacağını tahmin eden bir bölüm eklemek istiyorum.
 
-## Harita, kaynaklar ve lisans
+## Harita verisi
 
-Harita **Gültepe ve çevresinin gerçek OSM yollarını** gösterir; çizilen alan resmî mahalle sınırı değildir. Örnek kutuların ve araç başlangıcının gerçek belediye envanteriyle ilişkisi yoktur. Veride 258 yol, 1552 yol düğümü, 354 bina geometrisi ve 10 park/bahçe/spor alanı geometrisi bulunur. Sorgu, kaynak ve zaman bilgileri veri dosyalarında korunur.
+Yollar **© OpenStreetMap contributors**, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) lisansıyla kullanılıyor. Bu alan resmî mahalle sınırı, kutular da belediyenin gerçek envanteri değil. [Veri kaynağı ve lisans ayrıntıları](data/README.md) dosyada yer alıyor.
 
-Harita verisi **© OpenStreetMap contributors**, [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/) kapsamındadır. Ayrıntılar: [OSM telif ve lisans](https://www.openstreetmap.org/copyright), [veri açıklaması](data/README.md). Harita yenilemek için internet gerektiren `node scripts/refresh-map.mjs` kullanılabilir; JSON ve JS dosyalarını birlikte günceller.
-
-- Yol verisi alma yöntemi: [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API).
-- Konum başvurusu: [Gültepe Mahallesi, Altındağ / Ankara](https://www.haritamap.com/yer/gultepe-mahallesi2-altindag).
-- HC-SR04 teknik başvurusu: [sensör veri sayfası](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf).
-
-Kod için ayrıca bir dağıtım lisansı henüz seçilmemiştir; harita verisinin ODbL koşulları bundan bağımsızdır.
-
-## English overview
-
-This repository is a **reconstructed software demo**, not the complete historical hardware project. According to the project owner, the broader project used Raspberry Pi 4, distance sensors, GPS and Wi‑Fi/communication modules. The Python source here was newly written for this demo; original source files were unavailable. It provides sensor validation, fill estimation, directed road routing, tour improvement, a local HTTP API and automated tests. The interface uses 20 simulated bins around Gültepe, Ankara, with cached OpenStreetMap roads. There is no live hardware connection or machine learning model in this version. Start with the [Python review guide](docs/PYTHON-INCELEME.md).
+Haritayı yenilemek için `node scripts/refresh-map.mjs` kullanılabilir; internet gerektirir ve JSON / JS veri dosyalarını birlikte günceller. Kod için ayrıca bir dağıtım lisansı henüz seçmedim.

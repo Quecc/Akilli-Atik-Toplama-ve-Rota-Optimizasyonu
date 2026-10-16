@@ -1,11 +1,8 @@
-"""Durak ziyaret sırası: çok başlangıçlı ekleme ve yönlü maliyetli 2-opt.
-
-Bu sezgisel bir iyileştirmedir; mutlak en kısa tur garantisi vermez.
-Başlangıç/dönüş araç noktası matrisin sıfırıncı satırıdır.
-"""
+"""Kutuların ziyaret sırasını hesapla. Araç noktası her zaman 0'dır."""
 
 from dataclasses import dataclass
 import math
+
 from .graph import RoutingError
 
 
@@ -17,72 +14,132 @@ class Tour:
 
 def tour_length(order: list[int] | tuple[int, ...], matrix: list[list[float]]) -> float:
     total = 0.0
-    for a, b in zip(order, order[1:]):
-        total += matrix[a][b]
+    for start, end in zip(order, order[1:]):
+        total += matrix[start][end]
     return total
 
 
-def improve(order: list[int], matrix: list[list[float]]) -> Tour:
-    """Bir segmenti ters çevirerek turu iyileştir.
+def validate_inputs(
+    matrix: list[list[float]], required: list[int] | tuple[int, ...]
+) -> None:
+    size = len(matrix)
+    if size == 0:
+        raise RoutingError("Mesafe matrisi boş olamaz.")
 
-    Tek yönlü ağda a→b ve b→a maliyetleri eşit olmak zorunda değildir.
-    Bu nedenle yalnızca iki dış kenar yerine bütün aday tur hesaplanır.
-    """
+    for row in matrix:
+        if len(row) != size:
+            raise RoutingError("Mesafe matrisi kare olmalı.")
+        for distance in row:
+            if not math.isfinite(distance) or distance < 0:
+                raise RoutingError(
+                    "Mesafe matrisinde geçersiz veya ulaşılamayan yol var."
+                )
+
+    for stop in required:
+        if type(stop) is not int or not 0 < stop < size:
+            raise RoutingError("Geçersiz durak indeksi.")
+
+
+def cheapest_insertion(
+    first: int,
+    selected: list[int],
+    matrix: list[list[float]],
+) -> list[int]:
+    """Kalan her kutuyu, tura en az ek yol getiren konuma yerleştir."""
+    order = [0, first, 0]
+    remaining = [stop for stop in selected if stop != first]
+
+    while remaining:
+        best_cost = math.inf
+        best_stop = None
+        best_position = None
+
+        for stop in remaining:
+            for position in range(1, len(order)):
+                previous_stop = order[position - 1]
+                next_stop = order[position]
+
+                # Eski bağlantı yerine yeni kutudan geçen iki bağlantı geliyor.
+                extra_distance = (
+                    matrix[previous_stop][stop]
+                    + matrix[stop][next_stop]
+                    - matrix[previous_stop][next_stop]
+                )
+                if extra_distance < best_cost:
+                    best_cost = extra_distance
+                    best_stop = stop
+                    best_position = position
+
+        if best_stop is None or best_position is None:
+            raise RoutingError("Ulaşılabilir tur oluşturulamadı.")
+
+        order.insert(best_position, best_stop)
+        remaining.remove(best_stop)
+
+    return order
+
+
+def improve(order: list[int], matrix: list[list[float]]) -> Tour:
+    """2-opt: ziyaret sırasının bir bölümünü ters çevirip daha kısa tur ara."""
     route = list(order)
     length = tour_length(route, matrix)
+
     for _ in range(12):
-        best, best_length = route, length
-        for i in range(1, len(route) - 2):
-            for j in range(i + 1, len(route) - 1):
-                candidate = route[:i] + list(reversed(route[i:j + 1])) + route[j + 1:]
+        best_route = route
+        best_length = length
+
+        for start in range(1, len(route) - 2):
+            for end in range(start + 1, len(route) - 1):
+                reversed_part = list(reversed(route[start : end + 1]))
+                candidate = route[:start] + reversed_part + route[end + 1 :]
+
+                # Tek yönler yüzünden yalnızca değişen uçları hesaplamak yetmez.
                 candidate_length = tour_length(candidate, matrix)
                 if candidate_length < best_length - 0.001:
-                    best, best_length = candidate, candidate_length
+                    best_route = candidate
+                    best_length = candidate_length
+
         if best_length >= length - 0.001:
             break
-        route, length = best, best_length
+
+        route = best_route
+        length = best_length
+
     return Tour(tuple(route), length)
 
 
-def plan_tour(matrix: list[list[float]], required: list[int] | tuple[int, ...], seed_tour: tuple[int, ...] | None = None) -> Tour:
-    """Bütün gerekli durakları bir kez ziyaret edip araç noktasına dön.
-
-    Her olası ilk durak denenir. Kalan duraklar turdaki ek maliyeti
-    en az olan yere eklenir. Ardından yönlü 2-opt uygulanır.
-    Karşılaştırma turu verilirse onun seçili duraklara indirgenmiş hali
-    de değerlendirilir; seçili tur için iyi bir üst sınır sağlar.
-    """
-    size = len(matrix)
-    if not size or any(len(row) != size for row in matrix):
-        raise RoutingError("Mesafe matrisi boş olmayan kare bir matris olmalı.")
-    if any(not math.isfinite(value) or value < 0 for row in matrix for value in row):
-        raise RoutingError("Mesafe matrisinde geçersiz veya ulaşılamayan yol var.")
-    if any(type(item) is not int or not 0 < item < size for item in required):
-        raise RoutingError("Geçersiz durak indeksi.")
+def plan_tour(
+    matrix: list[list[float]],
+    required: list[int] | tuple[int, ...],
+    seed_tour: tuple[int, ...] | None = None,
+) -> Tour:
+    """Farklı başlangıçları dene ve bulunan en kısa turu döndür."""
+    validate_inputs(matrix, required)
     selected = sorted(set(required))
+
     if not selected:
         return Tour((0,), 0.0)
+
     best = Tour((), math.inf)
+
+    # Bütün kutuların turundan yalnızca seçilen kutuları bırakarak da dene.
     if seed_tour:
         allowed = {0, *selected}
-        projected = [item for item in seed_tour if item in allowed]
-        if projected and projected[0] == projected[-1] == 0 and set(projected[1:-1]) == set(selected) and len(projected) == len(selected) + 2:
+        projected = [stop for stop in seed_tour if stop in allowed]
+        starts_and_ends_at_depot = projected and projected[0] == projected[-1] == 0
+        visits_each_stop_once = (
+            set(projected[1:-1]) == set(selected)
+            and len(projected) == len(selected) + 2
+        )
+        if starts_and_ends_at_depot and visits_each_stop_once:
             best = improve(projected, matrix)
+
     for first in selected:
-        order = [0, first, 0]
-        remaining = [item for item in selected if item != first]
-        while remaining:
-            delta, chosen, position = math.inf, None, None
-            for item in remaining:
-                for p in range(1, len(order)):
-                    cost = matrix[order[p - 1]][item] + matrix[item][order[p]] - matrix[order[p - 1]][order[p]]
-                    if cost < delta:
-                        delta, chosen, position = cost, item, p
-            if chosen is None or position is None:
-                raise RoutingError("Ulaşılabilir tur oluşturulamadı.")
-            order.insert(position, chosen)
-            remaining.remove(chosen)
+        order = cheapest_insertion(first, selected, matrix)
         candidate = improve(order, matrix)
+
         if candidate.meters < best.meters:
             best = candidate
+
+    # Bu bir sezgisel çözüm; bütün olası turların tarandığı anlamına gelmez.
     return best
