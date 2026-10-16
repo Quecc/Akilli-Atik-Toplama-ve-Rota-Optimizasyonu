@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-16",
+  "checks": [
+    {
+      "name": "Python motoruyla varsayılan 14/6",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "14",
+        "distance-message": "Örnek kalibrasyon: boş 200 cm / dolu 20 cm.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "12,53 km",
+        "route-computed-status": "Rota güncel · Python hesabı",
+        "selected-fill": "82",
+        "selected-heading": "K01",
+        "skipped-count": "6"
+      }
+    },
+    {
+      "name": "Python ile 80 cm / yüzde 66,7 / 15 aday",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "15",
+        "distance-message": "80 cm → %66,7 doluluk. Rota güncellendi.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "12,84 km",
+        "route-computed-status": "Rota güncel · Python hesabı",
+        "selected-fill": "66,7",
+        "selected-heading": "K03",
+        "skipped-count": "5"
+      }
+    },
+    {
+      "name": "Geçersiz ölçüm mevcut doluluğu korur",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "15",
+        "distance-message": "2–400 cm arası bir sayı veya “Mesafe: 80.0 cm” çıktısı gir.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "12,84 km",
+        "route-computed-status": "Rota güncel · Python hesabı",
+        "selected-fill": "66,7",
+        "selected-heading": "K03",
+        "skipped-count": "5"
+      }
+    },
+    {
+      "name": "110 cm tam yüzde 50; aday sayılmaz",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "14",
+        "distance-message": "110 cm → %50 doluluk. Rota güncellendi.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "12,53 km",
+        "route-computed-status": "Rota güncel · Python hesabı",
+        "selected-fill": "50",
+        "selected-heading": "K03",
+        "skipped-count": "6"
+      }
+    },
+    {
+      "name": "Python ile tümü boş: sıfır tur",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "0",
+        "distance-message": "110 cm → %50 doluluk. Rota güncellendi.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "0 km",
+        "route-computed-status": "Toplama adayı yok · araç çıkışı yok",
+        "selected-fill": "0",
+        "selected-heading": "K01",
+        "skipped-count": "20"
+      }
+    },
+    {
+      "name": "Python ile tümü dolu: referansla aynı tur",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "20",
+        "distance-message": "110 cm → %50 doluluk. Rota güncellendi.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "14,55 km",
+        "route-computed-status": "Rota güncel · Python hesabı",
+        "selected-fill": "100",
+        "selected-heading": "K01",
+        "skipped-count": "0"
+      }
+    },
+    {
+      "name": "Demo ve geçmiş donanım açıklaması",
+      "passed": true,
+      "details": "PROJE HAKKINDA\n×\nSensörden toplama rotasına.\n\nArduino Uno + HC-SR04 devresi Tinkercad'de mesafe ölçer. Bu panel, aynı 200 / 20 cm örnek kalibrasyonuyla mesafeyi doluluğa çevirir. Seri monitör çıktısını seçili kutuya elle aktarabilirsin.\n\nÖlç: Hedef yaklaştıkça kutunun hesaplanan doluluğu artar.\nSeç: Yalnızca ayarlanan doluluk eşiğinin üzerindeki kutular toplanır.\nPlanla: Yol ağı üzerinde toplama sırası yeniden hesaplanır.\nBu sürüm kapsamlı donanım projesinin demosudur. Önceki fiziksel çalışma Raspberry Pi 4, GPS ve Wi‑Fi/haberleşme modüllerini de kapsıyordu. Bu panel gerçek cihazlara bağlı değildir. Python kodları demo için yeniden yazılmıştır. Yol çizimleri OpenStreetMap verisidir. Kutu yerleri, depo ve doluluklar örnektir. Tek yönler hesaba katılır; dönüş yasakları ve kamyon kısıtları bu prototipte uygulanmaz. Rota, sürüş talimatı olarak kullanılmamalıdır.\n\nRota hesabı en kısa yol ve ziyaret sırası algoritmaları kullanır. Makine öğrenmesiyle dolma zamanı tahmini, veri biriktikten sonra eklenebilir.\n\nKurulum ve proje notları ↗ Python inceleme rehberi ↗"
+    },
+    {
+      "name": "JSON çıktısı Python kaynağını belirtir",
+      "passed": true,
+      "details": {
+        "engine": "python",
+        "bins": 20
+      }
+    },
+    {
+      "name": "Senaryo sıfırlanınca eski ölçüm mesajı temizlenir",
+      "passed": true,
+      "details": {
+        "baseline-distance": "14,55 km",
+        "candidate-count": "14",
+        "distance-message": "Örnek kalibrasyon: boş 200 cm / dolu 20 cm.",
+        "engine-status": " Python motoru",
+        "optimized-distance": "12,53 km",
+        "route-computed-status": "Rota güncel · Python hesabı",
+        "selected-fill": "82",
+        "selected-heading": "K01",
+        "skipped-count": "6"
+      }
+    },
+    {
+      "name": "Python paneli 390 px genişlikte taşmaz",
+      "passed": true,
+      "details": {
+        "engine": " Python motoru",
+        "scroll": 375,
+        "width": 375
+      }
+    },
+    {
+      "name": "Python olmadan hesap motoru açıkça tarayıcıdır",
+      "passed": true,
+      "details": "Tarayıcı hesabı"
+    },
+    {
+      "name": "JavaScript alternatifinde ölçüm uygulanır",
+      "passed": true,
+      "details": "66,7"
+    },
+    {
+      "name": "Python panelinde JavaScript hata kaydı yok",
+      "passed": true,
+      "details": []
+    }
+  ]
+}

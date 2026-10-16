@@ -1,0 +1,8 @@
+{
+  "name": "temiz-rota-gultepe",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Gültepe Mahallesi için sensör doluluğu ve atık toplama rotası simülasyonu",
+  "scripts": {"start": "python python/run_server.py", "start:browser": "node server.mjs", "test": "node --test tests/route-engine.test.cjs", "test:python": "python python/run_tests.py"},
+  "engines": {"node": ">=18"}
+}

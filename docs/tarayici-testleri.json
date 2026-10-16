@@ -1,0 +1,34 @@
+{
+  "verifiedAt": "2026-10-15T21:08:23.698Z",
+  "browser": "Codex in-app browser",
+  "checks": [
+    "Başlangıç: 14 aday / 6 atlanan",
+    "K03 seçimi, 80 cm aktarımı ve 15 aday",
+    "Geçersiz ölçüm doluluğu değiştirmedi",
+    "Tam %50 toplama adayı değil",
+    "Doluluk kaydırıcısı %100",
+    "Doluluk kaydırıcısı %0",
+    "%100 eşiğinde aday yok (klavye)",
+    "Tümü boş: 0 aday / 20 atlanan / 0 km",
+    "Tümü dolu: 20 aday ve aynı mesafe",
+    "Karşılaştırma rotası görünür",
+    "Harita yakınlaştırma",
+    "Kutu araması",
+    "Arama ve aday filtresi birlikte",
+    "Aday filtresi: 14 kutu",
+    "Atlanan filtresi: 6 kutu",
+    "Yöntem açıklaması açılıyor",
+    "Canlı simülasyon veri üretti ve durduruldu",
+    "JSON dışa aktarımı: 20 sanal kutu ve 14 aday",
+    "390 px mobil: yatay taşma yok, harita panelde ve 14 aday",
+    "Seçili kutuyu boşaltma: aday sayısı azalıyor"
+  ],
+  "finalUi": {
+    "baseline": "14,55 km",
+    "c": "14",
+    "gain": "13,9",
+    "route": "12,53 km",
+    "s": "6"
+  },
+  "fileProtocol": "Tarayıcı URL politikası doğrudan file: açılmasını engelledi; çalışma HTTP üzerinden doğrulandı."
+}

@@ -1,0 +1,15 @@
+✔ sensör kalibrasyonu ve ölçüm hatası boş kutuyla karışmaz (1.5822ms)
+✔ Tinkercad cm çıktısı ve Türkçe ondalık ayracı okunur (0.3152ms)
+✔ tek yön ve ters tek yön yol grafiğinde uygulanır (1.4969ms)
+✔ gerçek yol verisindeki 20 sanal kutu birbirine bağlıdır (3.4444ms)
+✔ başlangıçta 14 toplama adayı ve 6 düşük doluluk bulunur; ziyaretler eksiksizdir (0.7761ms)
+✔ boş tur, tek durak ve tüm kutular durumları geçerli (0.1607ms)
+✔ eşikteki kutu seçilmez, eşiği aşan seçilir (0.0941ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 113.1542
