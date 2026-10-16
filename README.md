@@ -142,3 +142,5 @@ Haritayı yenilemek için `node scripts/refresh-map.mjs` kullanılabilir; intern
 ## İletişim
 
 Projenin kapsamı, fiziksel uygulaması ve teknik ayrıntıları hakkında daha detaylı bilgi için e-posta üzerinden iletişime geçilebilir.
+
+**E-posta:** [erhan.slprs06@gmail.com](mailto:erhan.slprs06@gmail.com)
