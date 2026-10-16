@@ -52,8 +52,8 @@ Eski GPS/Wi‑Fi modüllerinin tam modeli, önceki bağlantı şeması ve geçmi
 Depoyu klonlayıp klasöre geçin:
 
 ```sh
-git clone https://github.com/Quecc/Ak-ll-At-k-Toplama-ve-Rota-Optimizasyonu.git
-cd Ak-ll-At-k-Toplama-ve-Rota-Optimizasyonu
+git clone https://github.com/Quecc/Akilli-Atik-Toplama-ve-Rota-Optimizasyonu.git
+cd Akilli-Atik-Toplama-ve-Rota-Optimizasyonu
 ```
 
 ### Web paneli ve Python motoru
